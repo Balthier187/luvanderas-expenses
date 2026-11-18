@@ -8,7 +8,7 @@
 
 const SHEET_NAME = 'Expenses';
 const FOLDER_NAME = 'Luvanderas receipts';
-const PEOPLE = ['Evan', 'Wife', 'Edna', 'Kristel', 'Lorie'];
+const PEOPLE = ['Evan', 'Mary Jean', 'Edna', 'Kristel', 'Lorie'];
 const CATEGORIES = ['Supplies', 'Plastic & packaging', 'Utilities', 'Rent', 'Salary',
   'Staff loan', 'Repairs', 'Transport', 'Bahay (household)', 'Other'];
 const HEADERS = ['Logged at', 'Date', 'Logged by', 'Paid by', 'Category', 'Amount',
