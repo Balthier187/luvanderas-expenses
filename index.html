@@ -95,7 +95,7 @@ button:disabled{opacity:.55;cursor:default}
 .dayhead .d{font-weight:700}
 .dayhead .s{font-size:.8rem;color:var(--muted)}
 .items{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 12px;border-top:1px solid var(--line);cursor:pointer;width:100%;text-align:left;background:none;border-radius:0;border-left:0;border-right:0;border-bottom:0;font-weight:400}
+.item{box-sizing:border-box;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 12px;border-top:1px solid var(--line);cursor:pointer;width:100%;text-align:left;background:none;border-radius:0;border-left:0;border-right:0;border-bottom:0;font-weight:400}
 .item:first-child{border-top:0}
 .dot{width:10px;height:10px;border-radius:50%}
 .dot.cash{background:var(--cash)} .dot.gcash{background:var(--gcash)}
@@ -119,6 +119,19 @@ button:disabled{opacity:.55;cursor:default}
 .people{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .people button{padding:16px;font-size:1rem}
 .note{font-size:.8rem;color:var(--muted)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
+.tabs button{border:0;background:transparent;padding:10px;border-radius:9px;color:var(--muted)}
+.tabs button[aria-selected=true]{background:var(--accent);color:var(--accent-ink)}
+.stock{display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.srow{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:10px 12px;border-top:1px solid var(--line);align-items:center}
+.srow:first-child{border-top:0}
+.srow .nm{font-weight:600;overflow-wrap:anywhere}
+.srow .nm small{display:inline;margin-left:6px;color:var(--muted);font-weight:500;font-size:.78rem}
+.srow .ins{display:flex;gap:6px;align-items:center}
+.srow input{width:5.5em;padding:9px 8px;text-align:right}
+.srow .tot{font-size:.8rem;color:var(--muted);padding:0;background:none}
+.srow .tot:empty{display:none}
+.unit{font-size:.75rem;color:var(--muted)}
 .tag.wait{background:var(--warn-soft);color:var(--warn)}
 </style>
 </head>
@@ -140,6 +153,21 @@ button:disabled{opacity:.55;cursor:default}
     <div class="people" id="people"></div>
     <p class="note">This phone remembers your name. You can change it later.</p>
   </section>
+
+  <div class="tabs" role="tablist" id="tabs" hidden>
+    <button type="button" role="tab" id="tabExp" aria-selected="true">Expense</button>
+    <button type="button" role="tab" id="tabCount" aria-selected="false">Stock count</button>
+  </div>
+
+  <form class="card" id="countForm" novalidate hidden>
+    <h2>Stock count</h2>
+    <p class="note">Count what's on the shelf. Enter full unopened cases and loose pieces. Leave an item blank if you didn't count it.</p>
+    <div class="field"><label class="label" for="countDate">Count date</label><input type="date" id="countDate"></div>
+    <div class="stock" id="stock"></div>
+    <div class="field"><label class="label" for="countNote">Note</label><textarea id="countNote" rows="2" placeholder="e.g. 1 Ariel case opened today"></textarea></div>
+    <button class="primary" type="submit" id="countBtn">Send count</button>
+    <div class="status" id="countStatus" role="status"></div>
+  </form>
 
   <form class="card" id="form" novalidate hidden>
     <h2>Add expense</h2>
@@ -172,7 +200,7 @@ button:disabled{opacity:.55;cursor:default}
 
   <section class="ledger" aria-labelledby="ledgerTitle">
     <div class="ledgerhead"><h2 id="ledgerTitle">Sent from this phone</h2></div>
-    <div id="list"><div class="empty">Expenses you send appear here. Evan sees everyone's in the Google Sheet.</div></div>
+    <div id="list"><div class="empty">Expenses and counts you send appear here. Evan sees everyone's in the Google Sheet.</div></div>
   </section>
 </div>
 <script src="config.js"></script>

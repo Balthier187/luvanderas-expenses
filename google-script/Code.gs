@@ -4,6 +4,7 @@
  * then Deploy > New deployment > Web app (Execute as: Me, Who has access: Anyone).
  * The website sends each expense here; this script adds one row to the
  * "Expenses" tab and saves any receipt photo in the Drive folder below.
+ * Stock counts go to the "Inventory" tab, one row per item counted.
  */
 
 const SHEET_NAME = 'Expenses';
@@ -11,6 +12,20 @@ const FOLDER_NAME = 'Luvanderas receipts';
 const PEOPLE = ['Evan', 'Mary Jean', 'Edna', 'Kristel', 'Lorie'];
 const CATEGORIES = ['Supplies', 'Plastic & packaging', 'Utilities', 'Rent', 'Salary',
   'Staff loan', 'Repairs', 'Transport', 'Bahay (household)', 'Other'];
+const INV_SHEET = 'Inventory';
+// Item name and sachets/pieces per full case (0 = counted by piece only).
+const ITEMS = [
+  ['Surf Liquid Detergent sachet', 288],
+  ['Surf Fabric Conditioner sachet', 126],
+  ['Ariel Liquid sachet', 126],
+  ['Zonrox Color Safe sachet', 360],
+  ['Downy sachet', 0],
+  ['Plastic Big', 0],
+  ['Plastic for Dry Clean', 0],
+  ['Aroma Sheets', 0]
+];
+const INV_HEADERS = ['Logged at', 'Count date', 'Counted by', 'Item', 'Full cases',
+  'Loose', 'Total pieces', 'Note', 'Count ID'];
 const HEADERS = ['Logged at', 'Date', 'Logged by', 'Paid by', 'Category', 'Amount',
   'Note', 'Receipt', 'Posted', 'Entry ID'];
 
@@ -25,6 +40,14 @@ function setup() {
     sh.getRange('B:B').setNumberFormat('@');
     sh.getRange('F:F').setNumberFormat('#,##0.00');
   }
+  let inv = ss.getSheetByName(INV_SHEET);
+  if (!inv) inv = ss.insertSheet(INV_SHEET);
+  if (inv.getLastRow() === 0) {
+    inv.appendRow(INV_HEADERS);
+    inv.setFrozenRows(1);
+    inv.getRange('A:A').setNumberFormat('yyyy-mm-dd hh:mm');
+    inv.getRange('B:B').setNumberFormat('@');
+  }
   receiptFolder_();
 }
 
@@ -37,6 +60,7 @@ function doPost(e) {
   lock.waitLock(20000);
   try {
     const d = JSON.parse(e.postData.contents);
+    if (d.type === 'count') return saveCount_(d);
     const amount = Math.round(Number(d.amount) * 100) / 100;
     if (!(amount > 0 && amount < 1000000)) return json_({ ok: false, error: 'Amount is missing or too large.' });
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(d.date))) return json_({ ok: false, error: 'Date is missing.' });
@@ -72,6 +96,36 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function saveCount_(d) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(d.date))) return json_({ ok: false, error: 'Date is missing.' });
+  if (PEOPLE.indexOf(d.by) < 0) return json_({ ok: false, error: 'Unknown name.' });
+  const id = String(d.id || '').replace(/[^A-Za-z0-9-]/g, '').slice(0, 40);
+  if (!id) return json_({ ok: false, error: 'Missing count id.' });
+  const lines = Array.isArray(d.items) ? d.items : [];
+  const rows = [];
+  const now = new Date();
+  for (let i = 0; i < lines.length; i++) {
+    const L = lines[i];
+    const def = ITEMS.filter(function (it) { return it[0] === L.item; })[0];
+    if (!def) return json_({ ok: false, error: 'Unknown item.' });
+    const cases = def[1] ? Math.floor(Number(L.cases) || 0) : 0;
+    const loose = Math.floor(Number(L.loose) || 0);
+    if (cases < 0 || loose < 0 || cases > 1000 || loose > 100000) return json_({ ok: false, error: 'A count looks wrong.' });
+    rows.push([now, d.date, d.by, def[0], def[1] ? cases : '', loose, cases * def[1] + loose, safeText_(d.note), id]);
+  }
+  if (!rows.length) return json_({ ok: false, error: 'Enter at least one count.' });
+  let sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INV_SHEET);
+  if (!sh) { setup(); sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INV_SHEET); }
+  const last = sh.getLastRow();
+  if (last > 1) {
+    const start = Math.max(2, last - 500);
+    const ids = sh.getRange(start, 9, last - start + 1, 1).getValues().flat();
+    if (ids.indexOf(id) >= 0) return json_({ ok: true, duplicate: true });
+  }
+  sh.getRange(last + 1, 1, rows.length, rows[0].length).setValues(rows);
+  return json_({ ok: true });
 }
 
 function receiptFolder_() {
