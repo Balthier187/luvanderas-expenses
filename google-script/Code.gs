@@ -7,6 +7,7 @@
  * Stock counts go to the "Inventory" tab, one row per item counted.
  */
 
+const SPREADSHEET_ID = '1HvMlFk-iLpPlk_2IKcG-4ax8feR2sCzgW748crJJZ8M'; // Evan's "Luvanderas Expenses" Google Sheet
 const SHEET_NAME = 'Expenses';
 const FOLDER_NAME = 'Luvanderas receipts';
 const PEOPLE = ['Evan', 'Mary Jean', 'Edna', 'Kristel', 'Lorie'];
@@ -30,7 +31,7 @@ const HEADERS = ['Logged at', 'Date', 'Logged by', 'Paid by', 'Category', 'Amoun
   'Note', 'Receipt', 'Posted', 'Entry ID'];
 
 function setup() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = ss_();
   let sh = ss.getSheetByName(SHEET_NAME);
   if (!sh) sh = ss.insertSheet(SHEET_NAME);
   if (sh.getLastRow() === 0) {
@@ -70,7 +71,8 @@ function doPost(e) {
     const id = String(d.id || '').replace(/[^A-Za-z0-9-]/g, '').slice(0, 40);
     if (!id) return json_({ ok: false, error: 'Missing entry id.' });
 
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    let sh = ss_().getSheetByName(SHEET_NAME);
+    if (!sh) { setup(); sh = ss_().getSheetByName(SHEET_NAME); }
     // Ignore a resend of the same entry (phone retried after a slow connection).
     const last = sh.getLastRow();
     if (last > 1) {
@@ -92,7 +94,7 @@ function doPost(e) {
       amount, safeText_(d.note), link, '', id]);
     return json_({ ok: true });
   } catch (err) {
-    return json_({ ok: false, error: 'Could not save. Try again.' });
+    return json_({ ok: false, error: 'Could not save (' + String(err && err.message || err).slice(0, 120) + ').' });
   } finally {
     lock.releaseLock();
   }
@@ -116,8 +118,8 @@ function saveCount_(d) {
     rows.push([now, d.date, d.by, def[0], def[1] ? cases : '', loose, cases * def[1] + loose, safeText_(d.note), id]);
   }
   if (!rows.length) return json_({ ok: false, error: 'Enter at least one count.' });
-  let sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INV_SHEET);
-  if (!sh) { setup(); sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INV_SHEET); }
+  let sh = ss_().getSheetByName(INV_SHEET);
+  if (!sh) { setup(); sh = ss_().getSheetByName(INV_SHEET); }
   const last = sh.getLastRow();
   if (last > 1) {
     const start = Math.max(2, last - 500);
@@ -126,6 +128,10 @@ function saveCount_(d) {
   }
   sh.getRange(last + 1, 1, rows.length, rows[0].length).setValues(rows);
   return json_({ ok: true });
+}
+
+function ss_() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
 }
 
 function receiptFolder_() {
