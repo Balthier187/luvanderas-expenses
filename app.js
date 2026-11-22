@@ -51,10 +51,10 @@
   ITEMS.forEach(function (it, i) {
     var row = document.createElement("div"); row.className = "srow";
     var nm = document.createElement("div"); nm.className = "nm"; nm.textContent = it[0];
-    if (it[1]) { var sm = document.createElement("small"); sm.textContent = it[1] + " per case"; nm.appendChild(sm); }
+    if (it[1]) { var sm = document.createElement("small"); sm.textContent = it[2] + " pcs per " + it[1].replace(/s$/, "") + (it[4] > 1 ? ", " + it[4] + " per " + it[3].replace(/s$/, "") : ""); nm.appendChild(sm); }
     var ins = document.createElement("div"); ins.className = "ins";
-    if (it[1]) ins.innerHTML += '<input id="cs' + i + '" inputmode="numeric" placeholder="0" aria-label="' + it[0] + ' full cases"><span class="unit">cases</span>';
-    ins.innerHTML += '<input id="ls' + i + '" inputmode="numeric" placeholder="0" aria-label="' + it[0] + ' loose pieces"><span class="unit">loose</span>';
+    if (it[1]) ins.innerHTML += '<input id="cs' + i + '" inputmode="numeric" placeholder="0" aria-label="' + it[0] + ' ' + it[1] + '"><span class="unit">' + it[1] + '</span>';
+    ins.innerHTML += '<input id="ls' + i + '" inputmode="numeric" placeholder="0" aria-label="' + it[0] + ' ' + it[3] + '"><span class="unit">' + it[3] + '</span>';
     var tot = document.createElement("div"); tot.className = "tot num"; tot.id = "tt" + i;
     row.append(nm, ins, tot); $("stock").appendChild(row);
   });
@@ -63,13 +63,13 @@
     var cv = c ? c.value.trim() : "", lv = l.value.trim();
     if (cv === "" && lv === "") return null;
     var cases = parseInt(cv || "0", 10), loose = parseInt(lv || "0", 10);
-    return { item: ITEMS[i][0], cases: cases, loose: loose, total: cases * ITEMS[i][1] + loose };
+    return { item: ITEMS[i][0], cases: cases, loose: loose, total: cases * ITEMS[i][2] + loose * ITEMS[i][4] };
   }
   $("stock").addEventListener("input", function (e) {
     if (e.target.tagName !== "INPUT") return;
     e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
     var i = e.target.id.slice(2), r = readCount(i);
-    $("tt" + i).textContent = r && ITEMS[i][1] ? "= " + r.total.toLocaleString("en-PH") + " pieces" : "";
+    $("tt" + i).textContent = r && (ITEMS[i][1] || ITEMS[i][4] > 1) ? "= " + r.total.toLocaleString("en-PH") + " pieces" : "";
   });
   $("countForm").addEventListener("submit", function (e) {
     e.preventDefault(); if (busy) return;

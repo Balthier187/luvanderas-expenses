@@ -14,19 +14,20 @@ const PEOPLE = ['Evan', 'Mary Jean', 'Edna', 'Kristel', 'Lorie'];
 const CATEGORIES = ['Supplies', 'Plastic & packaging', 'Utilities', 'Rent', 'Salary',
   'Staff loan', 'Repairs', 'Transport', 'Bahay (household)', 'Other'];
 const INV_SHEET = 'Inventory';
-// Item name and sachets/pieces per full case (0 = counted by piece only).
+// [item, big unit, pieces per big unit, small unit, pieces per small unit]. Big unit '' = none.
+// Plastic: 1 pack = 5 rolls, 1 roll = 20 sheets, so 1 pack = 100 pieces.
 const ITEMS = [
-  ['Surf Liquid Detergent sachet', 288],
-  ['Surf Fabric Conditioner sachet', 126],
-  ['Ariel Liquid sachet', 126],
-  ['Zonrox Color Safe sachet', 360],
-  ['Downy sachet', 0],
-  ['Plastic Big', 0],
-  ['Plastic for Dry Clean', 0],
-  ['Aroma Sheets', 0]
+  ['Surf Liquid Detergent sachet', 'cases', 288, 'loose', 1],
+  ['Surf Fabric Conditioner sachet', 'cases', 126, 'loose', 1],
+  ['Ariel Liquid sachet', 'cases', 126, 'loose', 1],
+  ['Zonrox Color Safe sachet', 'cases', 360, 'loose', 1],
+  ['Downy sachet', '', 0, 'pcs', 1],
+  ['Plastic Big', 'packs', 100, 'rolls', 20],
+  ['Plastic for Dry Clean', 'packs', 100, 'rolls', 20],
+  ['Aroma Sheets', '', 0, 'pcs', 1]
 ];
-const INV_HEADERS = ['Logged at', 'Count date', 'Counted by', 'Item', 'Full cases',
-  'Loose', 'Total pieces', 'Note', 'Count ID'];
+const INV_HEADERS = ['Logged at', 'Count date', 'Counted by', 'Item', 'Cases / packs',
+  'Loose / rolls', 'Total pieces', 'Note', 'Count ID'];
 const HEADERS = ['Logged at', 'Date', 'Logged by', 'Paid by', 'Category', 'Amount',
   'Note', 'Receipt', 'Posted', 'Entry ID'];
 
@@ -112,10 +113,10 @@ function saveCount_(d) {
     const L = lines[i];
     const def = ITEMS.filter(function (it) { return it[0] === L.item; })[0];
     if (!def) return json_({ ok: false, error: 'Unknown item.' });
-    const cases = def[1] ? Math.floor(Number(L.cases) || 0) : 0;
-    const loose = Math.floor(Number(L.loose) || 0);
-    if (cases < 0 || loose < 0 || cases > 1000 || loose > 100000) return json_({ ok: false, error: 'A count looks wrong.' });
-    rows.push([now, d.date, d.by, def[0], def[1] ? cases : '', loose, cases * def[1] + loose, safeText_(d.note), id]);
+    const big = def[2] ? Math.floor(Number(L.cases) || 0) : 0;
+    const small = Math.floor(Number(L.loose) || 0);
+    if (big < 0 || small < 0 || big > 1000 || small > 100000) return json_({ ok: false, error: 'A count looks wrong.' });
+    rows.push([now, d.date, d.by, def[0], def[2] ? big : '', small, big * def[2] + small * def[4], safeText_(d.note), id]);
   }
   if (!rows.length) return json_({ ok: false, error: 'Enter at least one count.' });
   let sh = ss_().getSheetByName(INV_SHEET);
